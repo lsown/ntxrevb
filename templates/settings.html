@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}NTX Home{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
+{% endblock %}
+
+
+
+{% block page_content %}
+<div class="page-header">
+    <h2>Motor Control</h2>
+</div>
+	<ul>
+    	<li>Motor1: <input type="checkbox" id="drv0" checked data-toggle="toggle" data-size="sm"></li>
+    	<li>Motor2: <input type="checkbox" id="drv1" checked data-toggle="toggle" data-size="sm"></li>
+	</ul>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script>
+
+{% endblock %}
+

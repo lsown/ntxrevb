@@ -1,0 +1,27 @@
+{
+    "aquarium":{
+        "host":"localhost",
+        "user":"root",
+        "password":"my secret password",
+        "db":"write-math"
+    },
+    "stepMotor":{
+        "frequency": 800,
+        "direction": "cw",
+        "dutyCycle": 50,
+        "plumbingInversion": 0
+    },
+    "sensors":{
+        "aqFlag": 1,
+        "cleanFlag": 1,
+        "wasteFlag": 1
+    },
+    "other":{
+        "preprocessing_queue":[
+            "preprocessing.scale_and_center",
+            "preprocessing.dot_reduction",
+            "preprocessing.connect_lines"
+            ],
+        "use_anonymous":true
+    }
+}

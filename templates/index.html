@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}NTX Home{% endblock %}
+
+{% block page_content %}
+<body>
+    <ul id='aqStatelist'><font color='blue'><i>Loading aquarium state, please wait...</font></i></ul>
+    <div class="container-fluid" id="stateGUI">
+        <div class="row mb-5">
+            <div class="col-5 text-center">
+                <h2 class="display-4" id="temp">na <span class = 'text-muted'>C</span></h2>
+                <p class="text-muted">Temp</p>
+            </div>
+            <div class="col-2 divider">
+    
+            </div>
+            <div class="col-5 text-center">
+                <h2 class="display-4" id='aquaState'>na</h2>
+                <p class="text-muted">Status</p>
+            </div>
+        </div>
+        <div class="row mb-5">
+            <div class="col-5 text-center">
+                <h2 class="display-4" id="exchangeState">...</h2>
+                <p class="text-muted">Exchange</p>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Buttons for start / stop exchanges -->
+    <div class="container-fluid mb-1">
+       <div class = "col-6 mx-auto">
+            <h3 class="text-center">Exchange Progress</h3>
+       </div>
+        <div class = col-12> <!-- this is shrinking the progress by a little-->
+            <div class="progress" style="height: 30px;">
+                <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">25%</div>
+            </div>
+        </div>
+        <div class="row">
+            <button type="button" id="startEx" class="btn btn-outline-primary btn-sm btn-block ml-3 mr-3 mb-1 mt-3">Start Exchange</button>
+            <button type="button" id="stopEx" class="btn btn-outline-danger btn-sm btn-block ml-3 mr-3 mb-1">Stop Exchange</button>
+            <button type="button" class="btn btn-outline-primary btn-sm btn-block ml-3 mr-3 mb-1">Auto-topoff</button>
+            <button type="button" id="testButton" class="btn btn-outline-danger btn-sm btn-block ml-3 mr-3 mb-1">Test Exchange</button>
+        </div>
+    </div>
+    <!-- Slider for configuration of drv0 -->
+    <div class="container-fluid mb-1">
+        <div class="row">
+            <div class = "col-3">  <!-- Toggles for Motor On / Off -->
+                <input type="checkbox" id="drv0" checked data-toggle="toggle" data-size="m" data-on="Drv0 ON" data-off="Drv0 OFF" data-onstyle="success" data-offstyle="danger" value="false"></li>
+            </div>
+            <div class = "col-3">  <!-- Toggles for FWD or REV -->
+                <input type="checkbox" id="drv0dir" checked data-toggle="toggle" data-size="m" data-on="FWD" data-off="REV" data-onstyle="dark" data-offstyle="dark" value="false"></li>
+            </div>
+            <div class = "slidecontainer col-3"> <!-- Slider for configuration of motor speed -->
+               <label for="drv0Slider">Drv0 Speed:  <span id="drv0SpdUI">placeholder</span>%</label>
+                <input type="range" min="1" max="100" value="50" class="slider" id="drv0Spd">
+
+
+            </div>
+        </div>
+    </div>
+    <!-- Toggles for Motor On / Off -->
+    <div class="container-fluid mb-1">      
+        <input type="checkbox" id="drv1" checked data-toggle="toggle" data-size="m" data-on="Drv1 ON" data-off="Drv1 OFF" data-onstyle="success" data-offstyle="danger" value="false"></li>
+    </div>
+    <div class="container-fluid mt-3 mb-3">
+        <div class="row">
+            <div class = "col-3">
+                <form id="emit" method="POST" action='#'>
+                    <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+                    <input type="submit" value="Echo">
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid mb-1">
+        <div class = "row">
+            <div class = "col-6 mx-auto"><h3 class="text-center">Temperature Range</h3></div>
+        </div>
+        <div class = "row">
+            <div class = "col-12">
+                <div id="tempSlider"></div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid mb-1">
+        <div class = "row">
+            <div class = "col-6 mx-auto"><h3 class="text-center">Drv2 Speed</h3></div>
+        </div>
+        <div class = "row">
+            <div class = "col-12">
+                <div id="drv2SpdSlider"></div>
+            </div>
+        </div>
+    </div>
+<body>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+
+            namespace = '/aqState';
+
+            var socket = io(namespace);
+
+            //Pulls data from the server JSON and inserts it into page. Updates 1/sec or by event
+            socket.on('aqStatemsg', function(msg) {
+            console.log(msg.data['temp'])
+            let temp = document.getElementById("temp");
+            let aquaState = document.getElementById("aquaState");
+            let exchangeState = document.getElementById("exchangeState");
+            temp.innerText = (msg.data['temp'] + ' C');
+            aquaState.innerText = msg.data['AqFlag'];
+            exchangeState.innerText = msg.data['exchangeState'];
+            });
+
+            //This lets us push data from a form
+            $('form#emit').submit(function(event) {
+                socket.emit('my_event', {data: $('#emit_data').val()});
+                let submitted = document.getElementById('emit_data').value;
+                console.log(submitted);
+                return false;
+            });
+
+
+            document.getElementById("drv0").onchange = function() {
+                let drv0Value = document.getElementById('drv0').value;
+                console.log("originally drv0 is " + drv0Value)
+                if (drv0Value === "false") {
+                    document.getElementById('drv0').setAttribute("value", "true") //first arg is name of attribute, second is value
+                } else {
+                    document.getElementById('drv0').setAttribute("value", "false")
+                }
+                console.log("now set to " + document.getElementById('drv0').value)
+            };
+            
+            //This lets us push the data from the slider to our dictionary
+            //output shows the value in realtime, and emit pushes the range to the server
+            let priorVal = 0;
+            let slider = document.getElementById("drv0Spd"); //pulls data from slider
+            let output = document.getElementById("drv0SpdUI"); //displays # on UI
+            //console.log(slider)
+            output.innerHTML = slider.value;
+            slider.oninput = function() {
+                output.innerHTML = this.value;
+                if (slider.value !== priorVal) socket.emit('my_event', {data: {'drv0Spd' : slider.value}});
+                console.log(slider.value)
+                priorVal = slider.value;
+            };
+
+            //Initialization of buttons on page load
+
+            //Button creation function, takes ID, button text, and 1 of 3 states
+            let createButton = function(buttonId, text, wantedState) {
+                let oldButton = document.getElementById(buttonId)
+                console.log('button pressed');  
+                let newButton = document.createElement("BUTTON")
+                newButton.type = "button";
+                newButton.innerText = text
+                newButton.id = buttonId;
+                switch(wantedState) {
+                    case 'disabled':
+                        newButton.classList.add('btn', 'btn-outline-secondary', 'btn-sm', 'btn-block', 'ml-3', 'mr-3', 'mb-1', 'mt-3');
+                        newButton.disabled = true;
+                        break;
+                    case 'success':
+                        newButton.classList.add('btn', 'btn-outline-success', 'btn-sm', 'btn-block', 'ml-3', 'mr-3', 'mb-1', 'mt-3');
+                        newButton.disabled = false;
+                    case 'enabled':
+                        newButton.classList.add('btn', 'btn-outline-primary', 'btn-sm', 'btn-block', 'ml-3', 'mr-3', 'mb-1', 'mt-3');
+                        newButton.disabled = false;
+                    default:
+                        newButton.classList.add('btn', 'btn-outline-primary', 'btn-sm', 'btn-block', 'ml-3', 'mr-3', 'mb-1', 'mt-3');
+                        newButton.disabled = false;
+                }
+                oldButton.parentNode.replaceChild(newButton, oldButton);
+                document.getElementById(newButton.id).addEventListener('click', () => {console.log("Mysterious Button clicked.")});
+            };
+
+            document.getElementById('testButton').onclick = function() {
+                createButton('testButton', 'testing', 'success');
+            };
+
+            document.getElementById('startEx').onclick = function() {
+                socket.emit('my_event', {data: {'exchangeState': true}})
+                createButton('startEx', 'Start Exchange - In Progress', 'disabled'); //resets start exchange to clickable
+            };
+
+            document.getElementById('stopEx').onclick = function() {
+                socket.emit('my_event', {data: {'exchangeState': false}})
+                //recreates start button with event listeners
+                createButton('startEx', 'Start Exchange', 'enabled'); //resets start exchange to clickable
+                document.getElementById('startEx').addEventListener('click', () => {socket.emit('my_event', {data: {'exchangeState': true}})})
+                document.getElementById('startEx').addEventListener('click', () => {createButton('startEx', 'Start Exchange - In Progress', 'disabled')})
+            };
+
+            //document.getElementById('stopEx').addEventListener('click', () => {console.log("Stop Button clicked.")});
+        
+            var tempSlider = document.getElementById('tempSlider');
+            noUiSlider.create(tempSlider, {
+                start: [20, 80],
+                connect: true,
+                range: {
+                    'min': 0,
+                    'max': 100
+                },
+                format: wNumb({
+                    decimals: 3,
+                    thousand: '.',
+                    suffix: ' °C'
+                }),
+                pips: {
+                    mode: 'steps',
+                    density: 10,
+                    format: wNumb({
+                        decimals: 2,
+                        suffix: ' °C'
+                    })
+                },
+                tooltips: true,
+                ariaFormat: wNumb({
+                    decimals: 3
+                }),
+            });
+
+            var drv2Spd = document.getElementById('drv2Spd');
+            noUiSlider.create(drv2SpdSlider, {
+                start: [50],
+                step: 10,
+                connect: true,
+                range: {
+                    'min': 0,
+                    'max': 100
+                },
+                format: wNumb({
+                    decimals: 3,
+                    thousand: '.',
+                    suffix: '°%'
+                }),
+                pips: {
+                    mode: 'steps',
+                    density: 10,
+                    format: wNumb({
+                        decimals: 0,
+                        suffix: '%'
+                    })
+                },
+                tooltips: false,
+                ariaFormat: wNumb({
+                    decimals: 3
+                }),
+            });
+        });
+
+    </script>
+
+        
+{% endblock %}
