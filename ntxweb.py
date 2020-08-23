@@ -2,9 +2,9 @@ import os
 from flask import Flask, render_template, session, redirect, url_for
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
+#from flask_wtf import FlaskForm
+#from wtforms import StringField, SubmitField
+#from wtforms.validators import DataRequired
 
 from flask_socketio import SocketIO, emit, disconnect
 from threading import Lock
@@ -16,8 +16,8 @@ try:
     import ntxpi
     aquarium = ntxpi.aquarium()
 except ModuleNotFoundError:
-    print('loading aquarium sim')
-    aquarium = ntxpisim.aquariumsim()
+    print('failure to import & load aquarium')
+#    aquarium = ntxpisim.aquariumsim()
     
 
 basedir = os.path.abspath(os.path.dirname(__file__))
