@@ -49,8 +49,8 @@ class aquarium:
             'drv0Spd' : 0,
             'drv1Spd' : 0,
             'aquaFlag' : random.randrange(0,2),
-            'cleanFlag' : random.randrange(0,2),
-            'wasteFlag' : random.randrange(0,2),
+            'rsvLoFlag' : random.randrange(0,2),
+            'rsvHiFlag' : random.randrange(0,2),
             'spareFlag' : random.randrange(0,2),
             'exchangeState' : False,
             'tempmax' : 40,
@@ -63,20 +63,25 @@ class aquarium:
         self.pinsIn = {
             #5 : {'name' : 'lvlEN', 'pinType': 'levelSensor', 'state' : 0},
             'buttonSig' : {'name' : 'buttonSig', 'pinType': 'interface', 'state' : 0, 'priorState' : 0, 'pin' : 23},
-            'wasteFlag' : {'name' : 'wasteFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 6},
-            'cleanFlag' : {'name' : 'cleanFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 19},
-            'aquaFlag' : {'name' : 'aquaFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 13},
+            'rsvHiFlag' : {'name' : 'rsvHiFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 6},
+            'rsvLoFlag' : {'name' : 'rsvLoFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 13},
+            'aquaFlag' : {'name' : 'aquaFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 19},
             'spareFlag' : {'name' : 'spareFlag', 'pinType': 'levelSensor', 'state' : 0, 'pin' : 26},
-            'FAULTn1' : {'name' : 'FAULTn1', 'pinType': 'motor', 'state' : 0, 'pin' : 17},
-            'FAULTn2' : {'name' : 'FAULTn2', 'pinType': 'motor', 'state' : 0, 'pin' : 27},
-            'FAULTn3' : {'name' : 'FAULTn3', 'pinType': 'motor', 'state' : 0, 'pin' : 22},
+            'aquaKillFlag' : {'name' : 'aquaKillFlag', 'pinType' : 'levelSensor', 'state' : 0, 'pin' : 5},
+            'stepFault' : {'name' : 'stepFault', 'pinType': 'motor', 'state' : 0, 'pin' : 17},
+            'bdcFault' : {'name' : 'bdcFault', 'pinType': 'motor', 'state' : 0, 'pin' : 27},
+            'dpFault' : {'name' : 'dpFault', 'pinType': 'motor', 'state' : 0, 'pin' : 22},
+            'stepHome' : {'name' : 'stepHome', 'pinType' : 'motor', 'state' : 0, 'pin' : 8}
         }
         self.pinsOut = {
             #24 : {'name' : 'I2C RST', 'state' : 0},
-            'LEDPwr' : {'name' : 'LEDPwr', 'state' : 0, 'pin' : 25},
+            'pcaEN' : {'name' : 'pcaEN', 'state' : 0, 'pin' :  14}, #0 to EN LED outputs, totem-pole config
+            'LEDPwr' : {'name' : 'LEDPwr', 'state' : 0, 'pin' : 25}, #unused - disconnected, default i2c controlled
             'stepDir' : {'name' : 'stepDir', 'state' : 0, 'pin' : 21},
-            'stepEn' : {'name' : 'stepEn', 'state' : 1, 'pin' : 20}, 
-            'stepStep' : {'name' : 'stepStep', 'state' : 0, 'pin' : 18}
+            'stepEn' : {'name' : 'stepEn', 'state' : 1, 'pin' : 20}, #LOW to EN stepper
+            'stepStep' : {'name' : 'stepStep', 'state' : 0, 'pin' : 18}, 
+            'stepRST' : {'name' : 'stepRST', 'state' : 1, 'pin' : 12}, #0 to RST
+            'stepSleep' : {'name' : 'stepSleep', 'state' : 1, 'pin' : 7} #unused - disconnected, HI to sleep
         }
         self.motors = {
             'drv0' : {'name' : 'wastePump', 'i2cAddress' : 0x60, 'speed' : 0, 'direction' : 'cw', 'faultpin' : 17, 'state' : 'cw: 0'},
@@ -124,8 +129,8 @@ class aquarium:
             'motor1' : self.motors['drv0']['state'],
             'motor2' : self.motors['drv0']['state'],
             'aquaFlag' : self.pinsIn['aquaFlag']['state'],
-            'cleanFlag' : self.pinsIn['cleanFlag']['state'],
-            'wasteFlag' : self.pinsIn['wasteFlag']['state'],
+            'rsvLoFlag' : self.pinsIn['rsvLoFlag']['state'],
+            'rsvHiFlag' : self.pinsIn['rsvHiFlag']['state'],
             'spareFlag' : self.pinsIn['spareFlag']['state'],
             'time' : datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         } #0 is celcius, 1 is farenheit
@@ -248,7 +253,7 @@ class myThread (threading.Thread):
 '''
 
 class stepMotor:
-    def __init__(self, frequency, direction, steps=0, disable = False, dutyCycle = 50, stepEnPin = 20, stepDirPin = 21, stepStepPin = 18):
+    def __init__(self, frequency, direction, steps=0, disable = False, dutyCycle = 50, stepEnPin = 20, stepDirPin = 21, stepStepPin = 18, stepRSTPin = 12, stepSleepPin = 7):
         self.frequency = frequency
         self.direction = direction
         self.steps = steps
@@ -257,8 +262,15 @@ class stepMotor:
         self.stepEnPin = 20
         self.stepDirPin = 21
         self.stepStepPin = 18
+        self.stepRSTPin = 12
+        self.stepSleepPin = 7
         
         self.pwm = GPIO.PWM(self.stepStepPin, self.frequency) #initializes pwm object
+        self.initMotor()
+
+    def initMotor(self):
+        GPIO.output(self.stepRSTPin, 1)
+        GPIO.output(self.stepSleepPin, 1)
 
     def calculateTime(self, frequency, steps):
         stepTime = 1/frequency/2 #duration for high, duration for low
