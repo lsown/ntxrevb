@@ -75,7 +75,7 @@ class aquarium:
         }
         self.pinsOut = {
             #24 : {'name' : 'I2C RST', 'state' : 0},
-            'pcaEN' : {'name' : 'pcaEN', 'state' : 0, 'pin' :  14}, #0 to EN LED outputs, totem-pole config
+            'pcaEN' : {'name' : 'pcaEN', 'state' : 1, 'pin' :  14}, #0 to EN LED outputs, totem-pole config
             'LEDPwr' : {'name' : 'LEDPwr', 'state' : 0, 'pin' : 25}, #unused - disconnected, default i2c controlled
             'stepDir' : {'name' : 'stepDir', 'state' : 0, 'pin' : 21},
             'stepEn' : {'name' : 'stepEn', 'state' : 1, 'pin' : 20}, #LOW to EN stepper
